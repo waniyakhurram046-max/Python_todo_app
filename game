@@ -1,0 +1,116 @@
+import pygame
+from sys import exit #to exit the game (code) when we quit
+import math #floating effect for ghost 
+
+#initialization 
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Ghost Runner")
+clock = pygame.time.Clock() 
+font = pygame.font.Font(None, 30)
+
+#surfaces
+surfaceSky = pygame.image.load("background.png").convert() #to load an image and convert it to a format that is easier to work with in Pygame
+surfaceSky = pygame.transform.scale(surfaceSky, (800, 600)) #to scale the image to fit the game window
+
+textSurface = font.render('Press SPACE to Start', False, 'Green') 
+textSurf_rect = textSurface.get_rect(center=(400, 200)) #to get the rectangular area of the text surface and set its position to the center of the game window
+scoreSurf = font.render('Score: ', False, 'Green')
+
+characterSurface = pygame.image.load("character.png").convert_alpha() #to load an image with transparency (alpha channel)
+characterSurface = pygame.transform.scale(characterSurface, (175, 175)) #to scale the image to fit the game window
+characterRect = characterSurface.get_rect(topleft=(40, 340)) #to get the rectangular area of the character surface and set its initial position
+
+obstacleSurface = pygame.image.load("obstacle.png").convert_alpha() #to load an image with transparency (alpha channel)
+obstacleSurface = pygame.transform.scale(obstacleSurface, (65, 65)) #to scale the image to fit the game window
+obstacleRect = obstacleSurface.get_rect(topleft=(800, 430)) #to get the rectangular area of the obstacle surface and set its initial position
+
+#variables
+game_active = False
+obstacle_x = 800
+character_x = 40
+score = 0
+char_gravity = 0
+
+def display_score(score):
+    scoreSurface = font.render(f'Score: {score}', False, 'Green') 
+    screen.blit(scoreSurface, (50, 50))
+
+def resetGame():
+    global obstacle_x, character_x, score, game_active
+    obstacle_x = 800
+    character_x = 40
+    score = 0
+    game_active = False
+
+while True: 
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+
+        if not game_active:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    resetGame()
+                    game_active = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                resetGame()
+                game_active = True
+
+        if game_active:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if characterRect.collidepoint(event.pos):
+                    if(characterRect.bottom >= 500):
+                        char_gravity = -25  # Set the character's vertical velocity to a negative value to make it jump
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    if(characterRect.bottom >= 500):  # Check if the character is on the ground before allowing it to jump
+                        char_gravity = -25  # Set the character's vertical velocity to a negative value to make it jump
+               
+    
+    #blit puts a surface onto another surface. In this case, we are blitting the test_surface onto the main screen surface.
+    screen.blit(surfaceSky, (0, 0))  # Draw the test surface at position (0, 0)
+    
+    if not game_active:
+        float_offset = math.sin(pygame.time.get_ticks() / 350) * 5
+        characterRect.y = 340 + float_offset  # Update the y-coordinate of the character rectangle to create a floating effect
+        screen.blit(textSurface, (textSurf_rect))  # Draw the text surface at position (250, 250)
+        screen.blit(characterSurface, characterRect)  # Draw the character surface at its current position
+
+    if game_active:
+        char_gravity += 0.65
+        characterRect.y += char_gravity
+        
+        if characterRect.bottom > 500: 
+            characterRect.bottom = 500
+            char_gravity = 0
+
+            float_offset = math.sin(pygame.time.get_ticks() / 100) * 2
+            characterRect.y = 340 + float_offset  # Update the y-coordinate of the character rectangle to create a floating effect
+        
+        screen.blit(scoreSurf, (50,50)) 
+        
+        obstacle_x -= 3.5
+        if obstacle_x < -175:
+            obstacle_x = 800
+            score += 1  # Increment the score when the obstacle goes off-screen
+        obstacleRect.topleft = (obstacle_x, 430)  # Update the position of the obstacle rectangle
+        screen.blit(obstacleSurface, obstacleRect)  # Draw the obstacle surface at its current position
+        display_score(score)  # Call the display_score function to update the score display
+        
+        character_x += 0.5
+        if character_x > 800: 
+            character_x = 40
+        characterRect.topleft = (character_x, characterRect.y)  # Update the position of the character rectangle
+        screen.blit(characterSurface, characterRect)  # Draw the obstacle surface at its current position
+
+    if characterRect.colliderect(obstacleRect):
+       textSurface = font.render('Game Over! Press SPACE to Restart', False, 'Red')
+       textSurf_rect = textSurface.get_rect(center=(400, 200))
+       screen.blit(textSurface, textSurf_rect)
+       resetGame()  # Reset the game if the character collides with the obstacle
+
+    pygame.display.update()
+    #to set the frame rate to 60 frames per second
+    clock.tick(60) 
